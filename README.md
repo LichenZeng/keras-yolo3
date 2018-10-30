@@ -97,3 +97,64 @@ If you want to use original pretrained weights for YOLOv3:
 6. The training strategy is for reference only. Adjust it according to your dataset and your goal. And add further strategy if needed.
 
 7. For speeding up the training process with frozen layers train_bottleneck.py can be used. It will compute the bottleneck features of the frozen model first and then only trains the last layers. This makes training on CPU possible in a reasonable time. See [this](https://blog.keras.io/building-powerful-image-classification-models-using-very-little-data.html) for more information on bottleneck features.
+
+
+# Keras YOLOv3 on self Panda dataset
+
+## Modify points base on master branch
+
+### train.py
+```python
+    annotation_path = '2007_train.txt'
+    log_dir = 'logs/000/'
+    classes_path = 'model_data/my_classes.txt'
+```
+
+`train.py` line 70
+```
+    # Unfreeze and continue training, to fine-tune.
+    # Train longer if the result is not good.
+    if False:  # My computer(E5-2660/16G/GTX1060) fails run this configuration
+```
+
+### voc_annotation.py
+```python
+# sets=[('2007', 'train'), ('2007', 'val'), ('2007', 'test')]
+sets=[('2007', 'train')]
+
+# classes = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+classes = ["panda"]
+```
+
+### yolo.py
+```python
+class YOLO(object):
+    _defaults = {
+        "model_path": 'model_data/panda_trained_weights_stage_1.h5',
+        "anchors_path": 'model_data/yolo_anchors.txt',
+        "classes_path": 'model_data/my_classes.txt',
+```
+
+## How to use
+
+1. Download [VOCdevkit_Panda60_1030.zip](https://github.com/LichenZeng/keras-yolo3/releases) and extract to this root directory, such as '/home/tensorflow01/workspace/python_study/keras-yolo3/VOCdevkit'
+2. Download [panda_trained_weights_stage_1.h5.zip](https://github.com/LichenZeng/keras-yolo3/releases) and extract to model_data, such as '/home/tensorflow01/workspace/python_study/keras-yolo3/model_data/panda_trained_weights_stage_1.h5'
+
+**Note** : 'VOCdevkit_Panda60_1030.zip' is the dataset create by self, 'panda_trained_weights_stage_1.h5.zip' is the pre-trained weights base on self Panda dataset.
+
+3. Run `voc_annotation.py` ($ python voc_annotation.py) to create train file "2007_train.txt"
+
+4. Run `yolo_video.py` ($ python yolo_video.py --image) to detect picture base on pre-trained weights 'panda_trained_weights_stage_1.h5'
+
+5. Run `train.py` ($ python train.py) to re-train YOLO v3 base on `yolo_weights.h5` (as above `python convert.py -w yolov3.cfg yolov3.weights model_data/yolo_weights.h5`) and 'VOCdevkit_Panda60_1030.zip' dataset.  
+If you want to re-train base on 'panda_trained_weights_stage_1.h5', you can modify code as follows:
+```python
+    else:
+        model = create_model(input_shape, anchors, num_classes,
+            freeze_body=2, weights_path='model_data/yolo_weights.h5') # make sure you know what you freeze
+```
+
+
+**Reference**:
+1. [【AI实战】动手训练自己的目标检测模型(YOLO篇)](https://www.liangzl.com/get-article-detail-12753.html)
+2. [【AI实战】手把手教你训练自己的目标检测模型（SSD篇）](https://my.oschina.net/u/876354/blog/1927351)
